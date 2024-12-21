@@ -1,4 +1,22 @@
-# Task Management System
+# MCP-Aurelius-Kline-Claude Task System
+
+## Project Vision
+MCP-Tasks-Project-Vision-Conflict-Resolution aims to:
+1. Provide seamless integration between Claude Desktop and VSCode environments
+2. Maintain context isolation between different project instances
+3. Enable effective task and vision management across workspaces
+
+## Project Structure
+The system consists of three main components:
+1. **Task Management Server**
+   - Handles task creation, tracking, and updates
+   - Maintains separate contexts for Claude and VSCode instances
+2. **Vision Conflict Server**
+   - Manages project vision and goals
+   - Resolves conflicts between different contexts
+3. **MCP Manager Interface**
+   - Provides unified control over MCP servers
+   - Visualizes context relationships and status
 
 ## Project Vision
 To create an efficient and reliable MCP (Model Context Protocol) manager that facilitates seamless communication between AI models and local services.

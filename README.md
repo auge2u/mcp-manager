@@ -69,23 +69,84 @@ src/
 
 ## Development
 
-1. Install dependencies:
+### Installation Options
+
+There are two ways to set up the development environment:
+
+1. **Using LaunchMCPs Script (Recommended)**
+   
+   This method automatically sets up the MCP Manager along with the task-manager and vision-conflict MCPs from [CLINE-MCP-Tasks](https://github.com/auge2u/CLINE-MCP-Tasks):
 
    ```bash
+   # Coming soon: LaunchMCPs script that will:
+   # 1. Clone both repositories (mcp-manager and CLINE-MCP-Tasks)
+   # 2. Install dependencies safely
+   # 3. Configure the task-manager and vision-conflict MCPs
+   # 4. Start all services
+   ```
+
+2. **Manual Installation**
+
+   If you prefer to install manually or encounter security warnings:
+
+   ```bash
+   # Note: Bun may flag some postinstall scripts as untrusted
+   # This is a security feature protecting against potentially harmful scripts
+   # You have several options:
+   
+   # Option 1: Use npm/yarn instead of bun
+   npm install
+   # or
+   yarn install
+
+   # Option 2: Use bun but skip postinstall scripts
+   bun install --no-post-install
+   # Then manually install biome:
+   npm install -g @biomejs/biome
+
+   # Option 3: Use bun and explicitly trust the scripts
    bun install
+   # Review and approve any security prompts
    ```
 
-2. Start the dev server:
+### Starting the Development Server
 
-   ```bash
-   bun dev
-   ```
+```bash
+bun dev
+```
 
-3. Build for production:
+### Building for Production
 
-   ```bash
-   bun run build
-   ```
+```bash
+bun run build
+```
+
+### Understanding Bun Security
+
+Bun's runtime includes security features that may flag certain postinstall scripts as untrusted, particularly those that:
+- Execute shell commands (using child_process)
+- Download/install binaries
+- Perform filesystem operations
+
+This is a security measure to protect against potentially malicious packages. While packages like @biomejs/biome are safe and come from trusted sources, Bun takes a cautious approach to automatically executing such scripts.
+
+## Included MCP Servers
+
+### Task Management MCP
+The task-manager MCP provides tools for:
+- Creating and managing development tasks
+- Tracking task priorities and dependencies
+- Organizing tasks by category
+- Monitoring task completion status
+
+### Vision Conflict MCP
+The vision-conflict MCP helps maintain project alignment by:
+- Managing project vision statements
+- Checking task alignment with project goals
+- Identifying and resolving conflicts
+- Tracking vision-related metrics
+
+Both MCPs are included in the [CLINE-MCP-Tasks](https://github.com/auge2u/CLINE-MCP-Tasks) repository and are automatically configured when using the LaunchMCPs script.
 
 ## Contributing
 

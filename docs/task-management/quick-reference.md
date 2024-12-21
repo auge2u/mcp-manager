@@ -1,4 +1,59 @@
-# Quick Reference Guide
+# MCP-Aurelius-Kline-Claude Quick Reference
+
+## Server Management
+
+### Server Types
+1. Active Claude Instance (in `/Documents/Cline/MCP/`)
+   - Marked with blue badge
+   - Represents Claude Desktop context
+
+2. VSCode Project Servers (in `/github/habitusnet/`)
+   - Context derived from repository
+   - Instance-specific isolation
+
+### Project ID Rules
+- Claude Instance: Use default project ID
+- VSCode Instance: Use repository name
+- Manual Override: When testing/debugging
+
+### Server States
+- Connected: Green indicator
+- Connecting: Yellow pulsing indicator
+- Disconnected: Red indicator
+
+## Context Management
+
+### Pre-Task Checklist
+1. Verify correct server context
+2. Check project ID assignment
+3. Confirm server status
+4. Review active connections
+
+### Critical File Locations
+- Config: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Logs: `/docs/logs/daily/YYYY-MM-DD.md`
+- Tasks: `/docs/task-management/task-system.md`
+- Context: `/docs/project-context.md`
+
+### Command Response Protocol
+1. Check server status
+2. Verify project context
+3. Execute command
+4. Monitor response
+5. Update logs
+
+### Priority Rules
+1. Active Claude tasks first
+2. VSCode project tasks second
+3. Cross-context tasks last
+4. Emergency fixes override
+
+## Task Selection Process
+1. Check active context
+2. Review priority queue
+3. Verify dependencies
+4. Assess resources
+5. Execute task
 
 ## Pre-Task Checklist
 1. Review task-system.md for current priorities

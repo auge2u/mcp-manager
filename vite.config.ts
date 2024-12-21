@@ -10,37 +10,16 @@ export default defineConfig({
 		electron([
 			{
 				entry: "electron/main.ts",
-				vite: {
-					build: {
-						outDir: "dist-electron",
-						lib: {
-							entry: "electron/main.ts",
-							formats: ["cjs"]
-						},
-						rollupOptions: {
-							external: ["electron"]
-						}
-					}
-				}
+				onstart(options) {
+					options.reload()
+				},
 			},
 			{
 				entry: "electron/preload.ts",
 				onstart(options) {
 					options.reload()
 				},
-				vite: {
-					build: {
-						outDir: "dist-electron",
-						lib: {
-							entry: "electron/preload.ts",
-							formats: ["cjs"]
-						},
-						rollupOptions: {
-							external: ["electron"]
-						}
-					}
-				}
-			}
+			},
 		]),
 		renderer()
 	],
@@ -49,7 +28,27 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src")
 		}
 	},
+	base: "./",
+	build: {
+		sourcemap: true,
+		minify: false,
+		rollupOptions: {
+			input: {
+				main: path.resolve(__dirname, 'index.html')
+			}
+		}
+	},
 	server: {
-		port: 7777
-	}
+		port: 7777,
+		strictPort: true,
+		host: true,
+		hmr: {
+			protocol: 'ws',
+			host: 'localhost'
+		},
+		watch: {
+			usePolling: true
+		}
+	},
+	clearScreen: false
 })

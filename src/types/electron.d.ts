@@ -1,22 +1,10 @@
-interface ConfigData {
-	mcpServers: {
-		[key: string]: {
-			command: string
-			args: string[]
-			env?: Record<string, string>
-		}
-	}
-}
-
 export interface IElectronAPI {
-	executeCommand: (
-		command: string
-	) => Promise<{ success: boolean; output: string }>
-	readConfig: () => Promise<ConfigData>
+  readConfig: () => Promise<unknown>
+  executeCommand: (command: string) => Promise<{ success: boolean; output: string }>
 }
 
 declare global {
-	interface Window {
-		electron: IElectronAPI
-	}
+  interface Window {
+    electron: IElectronAPI
+  }
 }

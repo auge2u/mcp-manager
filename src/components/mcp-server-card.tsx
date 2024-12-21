@@ -1,25 +1,19 @@
-import { EnvConfig } from "./server-configs/env-config"
-import { FilesystemConfig } from "./server-configs/filesystem-config"
-import { ObsidianConfig } from "./server-configs/obsidian-config"
-import { PostgresConfig } from "./server-configs/postgres-config"
-import { SentryConfig } from "./server-configs/sentry-config"
-import { SQLiteConfig } from "./server-configs/sqlite-config"
-import { TerminalCommand } from "./terminal-command"
-import { SERVER_CONFIGS } from "../server-configs"
-import { ArrowUpRight, Trash2, AlertCircle } from "lucide-react"
-import { validateServerConfig } from "../utils/config-validator"
+import { capitalizeFirstLetter } from "../utils"
+import { getDefaultProjectId } from "../server-configs"
+import { useEffect, useState } from "react"
 
-type MCPServerConfig = {
+type MCPServer = {
 	command: string
 	args: string[]
 	env?: Record<string, string>
+	projectId?: string
 }
 
 type MCPServerCardProps = {
 	serverName: string
-	config: MCPServerConfig
+	config: MCPServer
 	icon?: string
-	onUpdate: (name: string, newConfig: MCPServerConfig) => void
+	onUpdate: (name: string, config: MCPServer) => void
 	onDelete: (name: string) => void
 }
 
@@ -30,196 +24,169 @@ export function MCPServerCard({
 	onUpdate,
 	onDelete
 }: MCPServerCardProps) {
-	const serverConfig = SERVER_CONFIGS[serverName as keyof typeof SERVER_CONFIGS]
-	const validationResult = validateServerConfig(serverName, serverConfig)
+    const [isRunning, setIsRunning] = useState(false)
+    const [output, setOutput] = useState<string[]>([])
+    const [projectId, setProjectId] = useState(config.projectId || getDefaultProjectId(config.args[0]) || '')
+    const [showOutput, setShowOutput] = useState(false)
+    const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected')
+    const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null)
 
-	const handleFilesystemUpdate = (paths: string[]) => {
-		const newConfig = {
-			...config,
-			args: [...config.args.slice(0, 2), ...paths]
-		}
-		onUpdate(serverName, newConfig)
-	}
+    useEffect(() => {
+        if (isRunning) {
+            setConnectionStatus('connecting')
+            const removeOutputListener = window.electron.onMCPOutput((data) => {
+                setOutput(prev => [...prev, `[OUT] ${data}`])
+                // Update connection status based on output
+                if (data.includes('Server started') || data.includes('Listening')) {
+                    setConnectionStatus('connected')
+                    setLastHeartbeat(new Date())
+                }
+            })
+            
+            const removeErrorListener = window.electron.onMCPError((data) => {
+                setOutput(prev => [...prev, `[ERR] ${data}`])
+                if (data.includes('Error') || data.includes('Failed')) {
+                    setConnectionStatus('disconnected')
+                }
+            })
 
-	const handlePostgresUpdate = (url: string) => {
-		const newConfig = {
-			...config,
-			args: [...config.args.slice(0, 2), url]
-		}
-		onUpdate(serverName, newConfig)
-	}
+            // Heartbeat check interval
+            const heartbeatInterval = setInterval(() => {
+                if (lastHeartbeat) {
+                    const timeSinceHeartbeat = Date.now() - lastHeartbeat.getTime()
+                    if (timeSinceHeartbeat > 10000) { // 10 seconds
+                        setConnectionStatus('disconnected')
+                    }
+                }
+            }, 5000)
 
-	const handleEnvUpdate = (key: string, value: string) => {
-		const newConfig = {
-			...config,
-			env: {
-				...(config.env || {}),
-				[key]: value
-			}
-		}
-		onUpdate(serverName, newConfig)
-	}
+            return () => {
+                removeOutputListener()
+                removeErrorListener()
+                clearInterval(heartbeatInterval)
+                setConnectionStatus('disconnected')
+            }
+        } else {
+            setConnectionStatus('disconnected')
+        }
+    }, [isRunning, lastHeartbeat])
 
-	const handleSqliteUpdate = (dbPath: string) => {
-		const newConfig = {
-			...config,
-			args: [
-				"--directory",
-				"parent_of_servers_repo/servers/src/sqlite",
-				"run",
-				"mcp-server-sqlite",
-				"--db-path",
-				dbPath
-			]
-		}
-		onUpdate(serverName, newConfig)
-	}
+    const handleStart = async () => {
+        try {
+            const result = await window.electron.launchMCP({
+                ...config,
+                projectId
+            })
+            if (result.success) {
+                setIsRunning(true)
+                setOutput([])
+            }
+        } catch (error) {
+            console.error(`Failed to start ${serverName}:`, error)
+            setOutput(prev => [...prev, `Failed to start: ${error}`])
+        }
+    }
+    const getStatusColor = () => {
+        switch (connectionStatus) {
+            case 'connected':
+                return 'bg-green-500'
+            case 'connecting':
+                return 'bg-yellow-500 animate-pulse'
+            case 'disconnected':
+                return 'bg-red-500'
+        }
+    }
 
-	const handleObsidianUpdate = (path: string) => {
-		const newConfig = {
-			...config,
-			args: [...config.args.slice(0, 2), path]
-		}
-		onUpdate(serverName, newConfig)
-	}
-
-	const handleSentryUpdate = (token: string) => {
-		const newConfig = {
-			...config,
-			args: [...config.args.slice(0, 2), token]
-		}
-		onUpdate(serverName, newConfig)
-	}
-
-	const handleDelete = (e: React.MouseEvent) => {
-		e.stopPropagation()
-		onDelete(serverName)
-	}
-
-	const isFilesystemServer = serverName === "filesystem"
-	const isPostgresServer = serverName === "postgres"
-	const isSqliteServer = serverName === "sqlite"
-	const isObsidianServer = serverName === "obsidian"
-	const isSentryServer = serverName === "sentry"
-	const iconUrl = icon || serverConfig?.icon
-
-	return (
-		<div className="join join-vertical w-full">
-			<div className="collapse collapse-arrow join-item border border-base-300 bg-white p-4">
-				<input type="checkbox" defaultChecked />
-				<div className="collapse-title">
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-2">
-							{iconUrl && (
-								<img
-									src={iconUrl}
-									alt={`${serverName} icon`}
-									className="w-20 h-12 object-contain"
-									onError={(e) => {
-										e.currentTarget.style.display = "none"
-									}}
-								/>
-							)}
-							<h3 className="text-lg capitalize">{serverName}</h3>
-						</div>
-						{!validationResult.isValid && (
-							<div className="tooltip tooltip-left" data-tip={validationResult.errors.map(e => e.message).join('\n')}>
-								<AlertCircle className="w-5 h-5 text-error" />
-							</div>
-						)}
-					</div>
-				</div>
-				<div className="collapse-content">
-					{!validationResult.isValid && (
-						<div className="alert alert-error mb-4">
-							<div>
-								<h4 className="font-bold">Configuration Errors:</h4>
-								<ul className="list-disc list-inside">
-									{validationResult.errors.map((error, index) => (
-										<li key={index}>
-											{error.field}: {error.message}
-										</li>
-									))}
-								</ul>
-							</div>
-						</div>
-					)}
-
-					{isFilesystemServer ? (
-						<FilesystemConfig
-							initialPaths={config.args.slice(2)}
-							onUpdate={handleFilesystemUpdate}
-						/>
-					) : isPostgresServer ? (
-						<PostgresConfig
-							initialUrl={config.args[2]}
-							onUpdate={handlePostgresUpdate}
-						/>
-					) : isSqliteServer ? (
-						<SQLiteConfig
-							initialPath={config.args[5]}
-							onUpdate={handleSqliteUpdate}
-						/>
-					) : isObsidianServer ? (
-						<ObsidianConfig
-							initialPath={config.args[2]}
-							onUpdate={handleObsidianUpdate}
-						/>
-					) : isSentryServer ? (
-						<SentryConfig
-							initialToken={config.args[2]}
-							onUpdate={handleSentryUpdate}
-						/>
-					) : serverConfig?.env &&
-					  Object.keys(serverConfig.env).length > 0 ? (
-						<EnvConfig
-							env={serverConfig.env}
-							initialValues={config.env || {}}
-							onUpdate={handleEnvUpdate}
-						/>
-					) : null}
-
-					{serverConfig?.docsUrl ===
-						"https://github.com/cloudflare/mcp-server-cloudflare" && (
-						<div className="bg-base-200 rounded-xl p-4 space-y-4">
-							<p className="text-sm text-gray-600">
-								MCP Manager can't update this server directly,
-								please run this terminal command to modify this
-								server.
-							</p>
-							<TerminalCommand
-								command={
-									serverConfig?.setupCommands?.command ?? ""
-								}
-							/>
-						</div>
-					)}
-				</div>
-				<div className="flex justify-end">
-					<div className="flex gap-2 mb-4 mr-2">
-						<button
-							type="button"
-							onClick={() =>
-								window.open(serverConfig?.docsUrl, "_blank")
-							}
-							className="btn btn-sm btn-secondary"
-						>
-							<ArrowUpRight className="w-4 h-4" />
-							<span>Docs</span>
-						</button>
-					</div>
-					<div className="flex gap-2 mb-4 mr-4 justify-end">
-						<button
-							type="button"
-							onClick={handleDelete}
-							className="btn btn-sm bg-red-50 hover:bg-red-100"
-						>
-							<Trash2 className="w-4 h-4" />
-							<span>Delete</span>
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	)
+    return (
+        <div className={`bg-white rounded-3xl p-6 relative shadow-lg hover:shadow-xl transition-shadow duration-300 ${
+            config.args[0].includes('/Documents/Cline/MCP/') ? 'border-2 border-primary' : ''
+        }`}>
+            {config.args[0].includes('/Documents/Cline/MCP/') && (
+                <div className="absolute -top-3 left-6 bg-primary text-white px-3 py-1 rounded-full text-xs">
+                    Active Claude Instance
+                </div>
+            )}
+            {/* Status Indicator */}
+            <div className="absolute top-6 right-6 flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${getStatusColor()}`}></div>
+                <span className="text-sm capitalize">{connectionStatus}</span>
+                {lastHeartbeat && connectionStatus === 'connected' && (
+                    <span className="text-xs opacity-50">
+                        Last heartbeat: {lastHeartbeat.toLocaleTimeString()}
+                    </span>
+                )}
+            </div>
+            <div className="flex items-center gap-6">
+                <div className="my-auto">
+                    {icon && (
+                        <img
+                            src={icon}
+                            alt={`${serverName} icon`}
+                            className="w-10 h-10 object-contain"
+                        />
+                    )}
+                </div>
+                <div className="flex flex-col flex-grow">
+                    <span className="text-xl font-normal mb-1">
+                        {capitalizeFirstLetter(serverName)}
+                    </span>
+                    <div className="space-y-1">
+                        <div className="text-sm opacity-80">
+                            <code className="bg-base-300 px-2 py-1 rounded">
+                                {config.command} {config.args.join(" ")}
+                            </code>
+                        </div>
+                        {config.args[0].includes('/github/habitusnet/') && (
+                            <div className="text-xs opacity-60">
+                                VSCode Project: {getDefaultProjectId(config.args[0])}
+                            </div>
+                        )}
+                    </div>
+                    <div className="mt-2">
+                        <input
+                            type="text"
+                            placeholder="Project ID (optional)"
+                            value={projectId}
+                            onChange={(e) => setProjectId(e.target.value)}
+                            className="input input-sm input-bordered w-48 mr-2"
+                        />
+                        <button
+                            type="button"
+                            className={`btn btn-sm ${isRunning ? 'btn-error' : 'btn-primary'} mr-2`}
+                            onClick={isRunning ? () => setIsRunning(false) : handleStart}
+                        >
+                            {isRunning ? 'Stop' : 'Start'}
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setShowOutput(!showOutput)}
+                        >
+                            {showOutput ? 'Hide Output' : 'Show Output'}
+                        </button>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => onDelete(serverName)}
+                >
+                    Remove
+                </button>
+            </div>
+            {showOutput && (
+                <div className="mt-4">
+                    <div className="bg-base-300 rounded p-2 max-h-40 overflow-y-auto">
+                        {output.length === 0 ? (
+                            <p className="text-sm opacity-50">No output yet</p>
+                        ) : (
+                            output.map((line, i) => (
+                                <pre key={i} className="text-sm whitespace-pre-wrap">{line}</pre>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
 }

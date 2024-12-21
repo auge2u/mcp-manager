@@ -1,12 +1,12 @@
-import { ApplyingInstructions } from "@/components/applying-instructions"
-import { LoadingInstructions } from "@/components/loading-instructions"
-import { MCPServers } from "@/components/mcp-servers"
-import { SERVER_CONFIGS } from "@/server-configs"
+import { ApplyingInstructions } from "./components/applying-instructions"
+import { LoadingInstructions } from "./components/loading-instructions"
+import { MCPServers } from "./components/mcp-servers"
+import { SERVER_CONFIGS } from "./server-configs"
 import {
 	type MCPConfig,
 	checkForConfigFile,
 	validateServerConfig
-} from "@/utils"
+} from "./utils"
 import type React from "react"
 import { useEffect, useState } from "react"
 
@@ -23,43 +23,23 @@ function App() {
 	// Check for config file on component mount
 	useEffect(() => {
 		const loadConfig = async () => {
-			console.log("Starting loadConfig...")
 			try {
 				const config = await checkForConfigFile()
-				console.log("Config loaded:", config)
-
 				if (config && validateServerConfig(config)) {
-					console.log("Config is valid, setting state...")
 					setJsonContent(config)
 					setUploadStatus("success")
 					setIsInstructionsOpen(false)
-					console.log("State updated")
 				} else {
-					console.log(
-						"Config is invalid or missing, showing instructions"
-					)
 					setIsInstructionsOpen(true)
 				}
 			} catch (err) {
-				console.error("Error loading config:", err)
 				setIsInstructionsOpen(true)
 			} finally {
-				console.log("Setting loading to false")
 				setIsLoading(false)
 			}
 		}
 		loadConfig()
 	}, [])
-
-	useEffect(() => {
-		console.log("Current state:", {
-			jsonContent,
-			uploadStatus,
-			isInstructionsOpen,
-			isLoading,
-			serverCount: Object.keys(jsonContent.mcpServers).length
-		})
-	}, [jsonContent, uploadStatus, isInstructionsOpen, isLoading])
 
 	const handleJsonInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
 		try {
@@ -72,17 +52,14 @@ function App() {
 				throw new Error("Invalid server configuration")
 			}
 		} catch (error) {
-			console.error("Error parsing JSON:", error)
 			setUploadStatus("error")
 		}
 	}
 
-	const handleServerAdd = (serverType: keyof typeof SERVER_CONFIGS) => {
-		console.log("Adding server:", serverType)
-		const serverConfig = SERVER_CONFIGS[serverType]
+	const handleServerAdd = (serverType: string) => {
+		const serverConfig = SERVER_CONFIGS[serverType as keyof typeof SERVER_CONFIGS]
 
 		if (!serverConfig.command || !serverConfig.args) {
-			console.error("Invalid server configuration")
 			return
 		}
 
@@ -102,7 +79,6 @@ function App() {
 	}
 
 	const handleServerRemove = (serverType: string) => {
-		console.log("Removing server:", serverType)
 		if (jsonContent.mcpServers[serverType]) {
 			const { [serverType]: _, ...rest } = jsonContent.mcpServers
 			setJsonContent({
@@ -114,81 +90,111 @@ function App() {
 
 	if (isLoading) {
 		return (
-			<div className="flex justify-center items-center h-screen">
-				<span className="text-lg">Loading configuration...</span>
+			<div className="flex justify-center items-center h-screen bg-[#f2f1e9]">
+				<div className="bg-white p-8 rounded-2xl shadow-lg">
+					<span className="text-lg">Loading configuration...</span>
+				</div>
 			</div>
 		)
 	}
 
-	// Debug render conditions
-	console.log("Render conditions:", {
-		hasServers: Object.keys(jsonContent.mcpServers).length > 0,
-		uploadStatus,
-		shouldShowServers:
-			Object.keys(jsonContent.mcpServers).length > 0 &&
-			uploadStatus === "success"
-	})
-
 	return (
-		<main className="max-h-screen p-16">
-			<div className="container mx-auto p-4 max-w-4xl">
-				<div className="flex justify-center items-center gap-8 mb-16">
-					<div className="flex items-center justify-center rounded-2xl h-16 p-8 border-2 border-black/20">
-						<img
-							src="/mcp-logo.svg"
-							alt="MCP Manager"
-							className="h-8"
-						/>
+		<main className="h-screen overflow-y-auto bg-[#f2f1e9]">
+			<div className="container mx-auto px-8 py-4 max-w-4xl min-h-screen">
+				<div className="flex justify-between items-center mb-8">
+					<div className="flex items-center gap-4">
+						<div className="flex items-center justify-center rounded-xl h-8 px-4 border-2 border-black/20">
+							<img
+								src="/mcp-logo.svg"
+								alt="MCP Manager"
+								className="h-4"
+							/>
+						</div>
+						<div className="flex items-center justify-center rounded-xl px-4 h-8 border-2 border-primary/30">
+							<img
+								src="/claude-logo.svg"
+								alt="Claude"
+								className="h-3"
+							/>
+						</div>
 					</div>
+					<button
+						type="button"
+						className="btn btn-ghost btn-circle"
+						onClick={() => {
+							const modal = document.getElementById(
+								"info_modal"
+							) as HTMLDialogElement
+							if (modal) {
+								modal.showModal()
+							}
+						}}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+						</svg>
+					</button>
+				</div>
 
-					<div className="flex items-center justify-center rounded-2xl p-8 h-16 border-2 border-primary/30">
-						<img
-							src="/claude-logo.svg"
-							alt="Claude"
-							className="h-6"
-						/>
+				<div className="mb-8">
+					<h1 className="text-3xl font-light">
+						MCP-Aurelius-Kline-Claude
+					</h1>
+					<p className="text-sm opacity-70 mt-1">
+						MCP-Tasks-Project-Vision-Conflict-Resolution
+					</p>
+				</div>
+
+				<dialog id="info_modal" className="modal backdrop-blur-sm">
+					<div className="modal-box rounded-3xl">
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="text-xl">About</h3>
+							<button
+								type="button"
+								className="btn btn-ghost btn-sm btn-circle"
+								onClick={() => {
+									const modal = document.getElementById(
+										"info_modal"
+									) as HTMLDialogElement
+									if (modal) {
+										modal.close()
+									}
+								}}
+							>
+								✕
+							</button>
+						</div>
+						<div className="space-y-4">
+							<p>
+								Give Claude access to private data, APIs, and other
+								services using the Model Context Protocol so it can
+								answer questions and perform actions on your behalf.
+							</p>
+							<p>
+								This is a web-based GUI to help you install and
+								manage MCP servers in your Claude App.
+							</p>
+							<div className="flex flex-col space-y-2">
+								<a
+									href="https://modelcontextprotocol.io"
+									className="link"
+									target="_blank"
+									rel="noreferrer"
+								>
+									MCP Documentation
+								</a>
+								<a
+									href="https://www.anthropic.com/news/model-context-protocol"
+									className="link"
+									target="_blank"
+									rel="noreferrer"
+								>
+									Anthropic's Announcement
+								</a>
+							</div>
+						</div>
 					</div>
-				</div>
-				<h1 className="text-5xl font-light text-center my-8">
-					MCP Manager for Claude Desktop
-				</h1>
-
-				<div className="flex justify-center">
-					<span className="text-md text-center mb-8">
-						Give Claude access to private data, APIs, and other
-						services using the Model Context Protocol so it can
-						answer questions and perform actions on your behalf.{" "}
-						<br />
-						<br />
-						In a nutshell, MCP servers are like plugins that give
-						Claude (the "client") prompts, resources, and tools to
-						perform actions on your behalf. Read the{" "}
-						<a
-							href="https://modelcontextprotocol.io"
-							className="link"
-							target="_blank"
-							rel="noreferrer"
-						>
-							MCP docs
-						</a>{" "}
-						or check out{" "}
-						<a
-							href="https://www.anthropic.com/news/model-context-protocol"
-							className="link"
-							target="_blank"
-							rel="noreferrer"
-						>
-							Anthropic's announcement
-						</a>{" "}
-						to learn more.
-						<br />
-						<br />
-						This is a simple, web-based GUI to help you install and
-						manage MCP servers in your Claude App. <br />
-						This runs client-side in your browser so your data will
-						never leave your computer.
-					</span>
-				</div>
+				</dialog>
 
 				<div className="space-y-6">
 					{isInstructionsOpen && (

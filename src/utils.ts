@@ -1,9 +1,24 @@
+declare global {
+    interface Window {
+        electron: {
+            readConfig: () => Promise<any>
+            executeCommand: (command: string) => Promise<{ success: boolean; output: string }>
+            launchMCP: (config: MCPServer) => Promise<{ success: boolean }>
+            onMCPOutput: (callback: (data: string) => void) => () => void
+            onMCPError: (callback: (data: string) => void) => () => void
+        }
+    }
+}
+
+export type MCPServer = {
+    command: string
+    args: string[]
+    env?: Record<string, string>
+    projectId?: string
+}
+
 export type MCPConfig = {
-	mcpServers: Record<
-		string,
-		{ command: string; args: string[]; env?: Record<string, string> }
-	>
-	cloudflare?: unknown
+    mcpServers: Record<string, MCPServer>
 }
 
 export function capitalizeFirstLetter(str: string): string {
@@ -77,49 +92,57 @@ export async function checkForConfigFile(): Promise<MCPConfig | null> {
 }
 
 export function validateServerConfig(config: unknown): config is MCPConfig {
-	console.log("Validating config:", config)
-	if (!config || typeof config !== "object") {
-		console.log("Config is not an object")
-		return false
-	}
+    console.log("Validating config:", config)
+    if (!config || typeof config !== "object") {
+        console.log("Config is not an object")
+        return false
+    }
 
-	const { mcpServers } = config as MCPConfig
+    const { mcpServers } = config as MCPConfig
 
-	if (!mcpServers || typeof mcpServers !== "object") {
-		console.log("mcpServers is missing or not an object")
-		return false
-	}
+    if (!mcpServers || typeof mcpServers !== "object") {
+        console.log("mcpServers is missing or not an object")
+        return false
+    }
 
-	console.log("Validating servers:", Object.keys(mcpServers))
+    console.log("Validating servers:", Object.keys(mcpServers))
 
-	for (const [serverName, server] of Object.entries(mcpServers)) {
-		console.log(`Validating server ${serverName}:`, server)
-		if (!server || typeof server !== "object") {
-			console.log(`Server ${serverName} is not an object`)
-			return false
-		}
+    for (const [serverName, server] of Object.entries(mcpServers)) {
+        console.log(`Validating server ${serverName}:`, server)
+        if (!server || typeof server !== "object") {
+            console.log(`Server ${serverName} is not an object`)
+            return false
+        }
 
-		if (
-			typeof server.command !== "string" ||
-			!Array.isArray(server.args) ||
-			!server.args.every((arg) => typeof arg === "string")
-		) {
-			console.log(`Server ${serverName} has invalid command or args`)
-			return false
-		}
+        if (
+            typeof server.command !== "string" ||
+            !Array.isArray(server.args) ||
+            !server.args.every((arg) => typeof arg === "string")
+        ) {
+            console.log(`Server ${serverName} has invalid command or args`)
+            return false
+        }
 
-		if (
-			server.env !== undefined &&
-			(typeof server.env !== "object" ||
-				!Object.values(server.env).every(
-					(value) => typeof value === "string"
-				))
-		) {
-			console.log(`Server ${serverName} has invalid env`)
-			return false
-		}
-	}
+        if (
+            server.env !== undefined &&
+            (typeof server.env !== "object" ||
+                !Object.values(server.env).every(
+                    (value) => typeof value === "string"
+                ))
+        ) {
+            console.log(`Server ${serverName} has invalid env`)
+            return false
+        }
 
-	console.log("Config validation passed!")
-	return true
+        if (
+            server.projectId !== undefined &&
+            typeof server.projectId !== "string"
+        ) {
+            console.log(`Server ${serverName} has invalid projectId`)
+            return false
+        }
+    }
+
+    console.log("Config validation passed!")
+    return true
 }
