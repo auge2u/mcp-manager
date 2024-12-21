@@ -1,6 +1,8 @@
-<h1 align="center">MCP Manager for Claude Desktop</h1>
+# MCP Manager for Claude Desktop
 
-<p align="center">A simple web GUI to manage Model Context Protocol (MCP) servers for the Claude Desktop app on MacOS easily. Just follow the instructions and paste a few commands to give your Claude app instant superpowers. </p>
+<center>A simple web GUI to manage Model Context Protocol (MCP) servers for the Claude Desktop app on MacOS easily. Just follow the instructions and paste a few commands to give your Claude app instant superpowers.</center>
+
+<center>A simple web GUI to manage Model Context Protocol (MCP) servers for the Claude Desktop app on MacOS easily. Just follow the instructions and paste a few commands to give your Claude app instant superpowers.</center>
 
 ![MCP Manager for Claude Desktop](https://assets.zue.ai/mcp-manager-hero.png)
 
@@ -110,6 +112,6 @@ MIT
 </a>
 </p>
 
-<p align="center">
-<a href="https://zue.ai/talk-to-us">Contact us</a> for custom AI automation solutions and product development.
-</p>
+<center>
+[Contact us](https://zue.ai/talk-to-us) for custom AI automation solutions and product development.
+</center>

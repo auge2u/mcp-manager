@@ -1,12 +1,13 @@
-import { EnvConfig } from "@/components/server-configs/env-config"
-import { FilesystemConfig } from "@/components/server-configs/filesystem-config"
-import { ObsidianConfig } from "@/components/server-configs/obsidian-config"
-import { PostgresConfig } from "@/components/server-configs/postgres-config"
-import { SentryConfig } from "@/components/server-configs/sentry-config"
-import { SQLiteConfig } from "@/components/server-configs/sqlite-config"
-import { TerminalCommand } from "@/components/terminal-command"
-import { SERVER_CONFIGS } from "@/server-configs"
-import { ArrowUpRight, Trash2 } from "lucide-react"
+import { EnvConfig } from "./server-configs/env-config"
+import { FilesystemConfig } from "./server-configs/filesystem-config"
+import { ObsidianConfig } from "./server-configs/obsidian-config"
+import { PostgresConfig } from "./server-configs/postgres-config"
+import { SentryConfig } from "./server-configs/sentry-config"
+import { SQLiteConfig } from "./server-configs/sqlite-config"
+import { TerminalCommand } from "./terminal-command"
+import { SERVER_CONFIGS } from "../server-configs"
+import { ArrowUpRight, Trash2, AlertCircle } from "lucide-react"
+import { validateServerConfig } from "../utils/config-validator"
 
 type MCPServerConfig = {
 	command: string
@@ -29,6 +30,9 @@ export function MCPServerCard({
 	onUpdate,
 	onDelete
 }: MCPServerCardProps) {
+	const serverConfig = SERVER_CONFIGS[serverName as keyof typeof SERVER_CONFIGS]
+	const validationResult = validateServerConfig(serverName, serverConfig)
+
 	const handleFilesystemUpdate = (paths: string[]) => {
 		const newConfig = {
 			...config,
@@ -92,8 +96,6 @@ export function MCPServerCard({
 		onDelete(serverName)
 	}
 
-	const serverConfig =
-		SERVER_CONFIGS[serverName as keyof typeof SERVER_CONFIGS]
 	const isFilesystemServer = serverName === "filesystem"
 	const isPostgresServer = serverName === "postgres"
 	const isSqliteServer = serverName === "sqlite"
@@ -106,7 +108,7 @@ export function MCPServerCard({
 			<div className="collapse collapse-arrow join-item border border-base-300 bg-white p-4">
 				<input type="checkbox" defaultChecked />
 				<div className="collapse-title">
-					<div className="flex items-center">
+					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							{iconUrl && (
 								<img
@@ -120,12 +122,32 @@ export function MCPServerCard({
 							)}
 							<h3 className="text-lg capitalize">{serverName}</h3>
 						</div>
+						{!validationResult.isValid && (
+							<div className="tooltip tooltip-left" data-tip={validationResult.errors.map(e => e.message).join('\n')}>
+								<AlertCircle className="w-5 h-5 text-error" />
+							</div>
+						)}
 					</div>
 				</div>
 				<div className="collapse-content">
+					{!validationResult.isValid && (
+						<div className="alert alert-error mb-4">
+							<div>
+								<h4 className="font-bold">Configuration Errors:</h4>
+								<ul className="list-disc list-inside">
+									{validationResult.errors.map((error, index) => (
+										<li key={index}>
+											{error.field}: {error.message}
+										</li>
+									))}
+								</ul>
+							</div>
+						</div>
+					)}
+
 					{isFilesystemServer ? (
 						<FilesystemConfig
-							initialPaths={config.args.slice(2)} // Changed from [config.args[2] || "/Users/"]
+							initialPaths={config.args.slice(2)}
 							onUpdate={handleFilesystemUpdate}
 						/>
 					) : isPostgresServer ? (
@@ -149,7 +171,7 @@ export function MCPServerCard({
 							onUpdate={handleSentryUpdate}
 						/>
 					) : serverConfig?.env &&
-						Object.keys(serverConfig.env).length > 0 ? (
+					  Object.keys(serverConfig.env).length > 0 ? (
 						<EnvConfig
 							env={serverConfig.env}
 							initialValues={config.env || {}}
